@@ -1,0 +1,52 @@
+一、安装
+
+1、master的安装
+
+#在centos安装master
+# 安装EPEL,注意选择合适的版本
+rpm -ivh http://mirrors.sohu.com/fedora-epel/6/x86_64/epel-release-6-8.noarch.rpm
+yum update
+
+# 安装master
+yum install salt-master   
+
+# 修改配置
+vim /etc/salt/master (如果使用默认的就不用改什么了)
+
+# 启动服务
+service salt-master start（salt建议不用/etc/init.d/）
+
+2、安装minion
+
+#在centos安装minion
+# 安装EPEL,注意选择合适的版本
+ rpm -ivh http://mirrors.sohu.com/fedora-epel/6/x86_64/epel-release-6-8.noarch.rpm
+ yum update
+ 
+# 安装minion
+ yum install salt-minion
+ 
+# 修改配置
+ vim /etc/salt/minion
+ 
+# 最基本的设定是指定master地址，以及本机标识符：
+# master: master的主机名或IP地址
+# id: 本机标识符
+# 其他配置参考[官方文档](http://docs.saltstack.com/ref/configuration/minion.html)
+ 
+
+# 启动服务(以下命令等效)
+ salt-minion -d
+ /etc/init.d/salt-minion start
+ service salt-minion start
+
+#在ubuntu安装minion
+添加仓库
+sudo add-apt-repository ppa:saltstack/salt
+添加仓库后，升级包管理数据库
+sudo apt-get update
+安装包
+apt-get install salt-minion
+启动服务
+service salt-minion start
+
