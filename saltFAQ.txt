@@ -1,0 +1,7 @@
+##1  修改minion的key的名称
+
+如果是默认的情况下，minion是以hostname作为key的名称的。
+如果我们不想修改hostname，但想自定义key的名称，可以在配置文件里面找到#id:这一行，
+注释掉，然后加上自己定义的名称，重启服务，即会向master
+重新发送新的key请求。
+有时候master发现不了，可能是之前有了minion原先的key，这时候先把原来的key删除。
