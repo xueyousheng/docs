@@ -1,0 +1,41 @@
+1、top
+
+top -p <PID> -d 1 -b | grep <PID>
+-b 是批处理模式
+-d 是输出的时间间隔
+-p 是特定进程的pid
+
+2、pmap
+
+pmap -d <PID> | tail
+
+[root@salt salt]# pmap -d 12566|tail
+00007f9816c16000    1040 rw--- 0000000000000000 000:00000   [ anon ]
+00007f9816d4c000     540 rw--- 0000000000000000 000:00000   [ anon ]
+00007f9816dd7000       4 rw--- 0000000000000000 000:00000   [ anon ]
+00007f9816dd8000       4 r---- 000000000001f000 0fd:00000 ld-2.12.so
+00007f9816dd9000       4 rw--- 0000000000020000 0fd:00000 ld-2.12.so
+00007f9816dda000       4 rw--- 0000000000000000 000:00000   [ anon ]
+00007fff34b80000     232 rw--- 0000000000000000 000:00000   [ stack ]
+00007fff34bff000       4 r-x-- 0000000000000000 000:00000   [ anon ]
+ffffffffff600000       4 r-x-- 0000000000000000 000:00000   [ anon ]
+mapped: 388924K    writeable/private: 27308K    shared: 0K
+
+pmap -x <PID> | tail
+
+[root@salt salt]# pmap -x 12566|tail
+00007f9816d4c000     540     532     532 rw---    [ anon ]
+00007f9816dd7000       4       4       4 rw---    [ anon ]
+00007f9816dd8000       4       4       4 r----  ld-2.12.so
+00007f9816dd9000       4       4       4 rw---  ld-2.12.so
+00007f9816dda000       4       4       4 rw---    [ anon ]
+00007fff34b80000     232     232     232 rw---    [ stack ]
+00007fff34bff000       4       4       0 r-x--    [ anon ]
+ffffffffff600000       4       0       0 r-x--    [ anon ]
+----------------  ------  ------  ------
+total kB          388924   32108   27008
+                           RSS     DIRTY
+
+3、cat /proc/<PID>/status| grep VmRSS
+
+
