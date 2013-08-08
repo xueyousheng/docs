@@ -1,0 +1,191 @@
+##1     安装
+高版本的CentOS可以使用YUM方式(测试通过)
+    yum install python-setuptools python-devel -y
+    easy_install pip
+    pip install fabric
+
+解决报错：AttributeError: 'module' object has no attribute 'HAVE_DECL_MPZ_POWM_SEC'
+    pip uninstall pycrypto
+    pip install PyCrypto==2.3
+
+##2 hello,fab
+
+在当前路径下创建一个文件fabfile.py
+输入内容：
+    def hello():
+        print("Hello world!")
+
+在当前路径运行：
+    fab hello
+
+Note:
+    The fab tool simply imports your fabfile and executes the function or functions you instruct it to.
+    There’s nothing magic about it – anything you can do in a normal Python script can be done in a fabfile!
+
+
+##3  初步使用执行远程命令
+
+编辑fabbic脚本 fab_test.py
+
+    from fabric.api import *
+
+    def host_type() :
+        run('uname -a')
+
+运行：
+    fab -f fab_test.py -H localhost 192.168.0.121,192.168.0.131 host_type
+如果没配置key，则输入密码，可以得到输出：
+
+示例：
+    [root@salt tmp]# fab -f fab_test.py -H 192.168.0.121,192.168.0.131 host_type
+    [192.168.0.121] Executing task 'host_type'
+    [192.168.0.121] run: uname -a
+    [192.168.0.121] Login password for 'root':
+    [192.168.0.121] out: Linux 121.centostest.com 2.6.32-358.el6.x86_64 #1 SMP Fri Feb 22 00:31:26 UTC 2013 x86_64 x86_64 x86_64 GNU/Linux
+    [192.168.0.121] out:
+
+    [192.168.0.131] Executing task 'host_type'
+    [192.168.0.131] run: uname -a
+    [192.168.0.131] out: Linux 131.nagcat.com 2.6.32-358.6.2.el6.x86_64 #1 SMP Thu May 16 20:59:36 UTC 2013 x86_64 x86_64 x86_64 GNU/Linux
+    [192.168.0.131] out:
+
+
+    Done.
+    Disconnecting from 192.168.0.121... done.
+    Disconnecting from 192.168.0.131... done.
+
+##4  实例：使用fabric在ubuntu12.04上安装salt-minion
+配置好远端ubuntu服务器的免密码登录
+
+编写fab执行脚本:
+    vim fab_salt_minion_install.py
+
+    from fabric.api import run
+    def host_type():
+        run('apt-get install python-software-properties -y')
+        run('add-apt-repository ppa:saltstack/salt')
+        run('apt-get update -y')
+        run('apt-get install salt-minion -y')
+        run("sed -i '/#master: salt/amaster: www.freefun.uni.me' /etc/salt/minion")
+        run('echo $?')
+        run('service salt-minion restart')
+        run('echo $?')
+
+运行：
+
+fab -f  fab_salt_minion_install.py -H 192.168.0.108 host_type
+运行结束后，到salt 的服务器去接受key就可以了
+当然，现在只是在单台机器上执行命令
+
+
+##5  实例：使用fabric在多台机器上进行命令操作（说是多台，这里实验的是2台）
+#
+#0 编写在实验机器上执行命令的脚本
+    vim fab_taskAB.py
+    from fabric.api import run, env
+    env.hosts = ['root@192.168.0.121','root@192.168.0.131']
+    def taskA():
+    run('ls')
+    def taskB():
+    run('whoami')
+
+# 默认执行模式:
+#
+#执行顺序就会是：
+#
+#taskA on host1
+#taskA on host2
+#taskB on host1
+#taskB on host2
+#
+
+    [root@salt tmp]# fab -f fab_taskAB.py taskA taskB
+    [root@192.168.0.121] Executing task 'taskA'
+    [root@192.168.0.121] run: ls
+    [root@192.168.0.121] out: anaconda-ks.cfg  a.txtb.txt  gitlab  install.log  install.log.syslogtestshift.sh  test.txt
+    [root@192.168.0.121] out:
+    
+    [root@192.168.0.131] Executing task 'taskA'
+    [root@192.168.0.131] run: ls
+    [root@192.168.0.131] out: anaconda-ks.cfg  dead.letter  install.log  install.log.syslog  nagiosrestart.sh  pasv.txt
+    [root@192.168.0.131] out:
+    
+    [root@192.168.0.121] Executing task 'taskB'
+    [root@192.168.0.121] run: whoami
+    [root@192.168.0.121] out: root
+    [root@192.168.0.121] out:
+    
+    [root@192.168.0.131] Executing task 'taskB'
+    [root@192.168.0.131] run: whoami
+    [root@192.168.0.131] out: root
+    [root@192.168.0.131] out:
+    
+    
+    Done.
+    Disconnecting from 192.168.0.121... done.
+    Disconnecting from 192.168.0.131... done.
+
+# 并行模式    
+#
+#一是在代码定义的函数上方加入@parallel(pool_size=5)
+#然后运行命令
+#
+#二是在运行命令的时候加入参数-P -z
+#
+#执行顺序就会是：
+#
+#taskA on host1,host2
+#taskB on host1,host2
+    
+    [root@salt tmp]# fab -P -z 5 -f  fab_taskAB.py  taskA taskB
+    [root@192.168.0.121] Executing task 'taskA'
+    [root@192.168.0.131] Executing task 'taskA'
+    [root@192.168.0.121] run: ls
+    [root@192.168.0.131] run: ls
+    [root@192.168.0.121] out: anaconda-ks.cfg  a.txtb.txt  gitlab  install.log  install.log.syslogtestshift.sh  test.txt
+    [root@192.168.0.121] out:
+
+    [root@192.168.0.131] out: anaconda-ks.cfg  dead.letter  install.log  install.log.syslog  nagiosrestart.sh  pasv.txt
+    [root@192.168.0.131] out:
+
+    [root@192.168.0.121] Executing task 'taskB'
+    [root@192.168.0.131] Executing task 'taskB'
+    [root@192.168.0.131] run: whoami
+    [root@192.168.0.121] run: whoami
+    [root@192.168.0.121] out: root
+    [root@192.168.0.121] out:
+
+    [root@192.168.0.131] out: root
+    [root@192.168.0.131] out:
+
+
+    Done.
+
+#但是并行输出好混乱，我们得对其处理一下
+#
+#   使用tee将输出另外定向到文件fab_output.txt中
+    fab -f fab_taskAB.py taskA taskB -P -z 5|tee fab_output.txt
+
+    接下来用文本处理fab_output.txt ，机器少的时候可以用grep，机器多的时候用下面这个命令【感谢神一样的大叔】
+    awk -F'[][@]' '!/^$/{a[$3]=a[$3]$0"\n"}END{for(i in a)print a[i]}' fab_output.txt
+
+Note:
+    发现并行执行脚本的时候，不能出现交互式的，否则会识别不出，卡住，估计是个bug
+
+##  最后实例：贴一下我给公司几台内网服务器部署salt minion的fab脚本，其实跟上面大同小异,其实学fabric也是为了部署salt-minion
+#
+
+    vim /tmp/fab_saltinstall.py
+    
+    from fabric.api import *
+    env.hosts = ['root@192.168.0.109','root@192.168.0.111','root@192.168.0.112','root@192.168.0.115','root@192.168.0.117','root@192.168.0.226']
+    
+    def minionInstall():
+        run('apt-get install python-software-properties -y')
+        run('add-apt-repository ppa:saltstack/salt -y')
+        run('apt-get update -y')
+        run('apt-get install salt-minion -y')
+        run("sed -i '/#master: salt/amaster: www.freefun.uni.me' /etc/salt/minion")
+        run('echo $?')
+        run('service salt-minion restart')
+        run('echo $?')
