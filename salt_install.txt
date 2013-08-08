@@ -42,11 +42,12 @@ service salt-master start（salt建议不用/etc/init.d/）
 
 #在ubuntu安装minion
 添加仓库
+sudo apt-get install python-software-properties
 sudo add-apt-repository ppa:saltstack/salt
 添加仓库后，升级包管理数据库
-sudo apt-get update
+sudo apt-get update -y
 安装包
-apt-get install salt-minion
+apt-get install salt-minion -y
 启动服务
 service salt-minion start
 
