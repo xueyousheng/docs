@@ -3,10 +3,10 @@
     yum install python-setuptools python-devel -y
     easy_install pip
     pip install fabric
-
-解决报错：AttributeError: 'module' object has no attribute 'HAVE_DECL_MPZ_POWM_SEC'
+安装下面的解决报错：AttributeError: 'module' object has no attribute 'HAVE_DECL_MPZ_POWM_SEC'
     pip uninstall pycrypto
     pip install PyCrypto==2.3
+
 
 ##2 hello,fab
 
@@ -18,7 +18,7 @@
 在当前路径运行：
     fab hello
 
-Note:
+Note:(大概意思就是说fabric很简单易用，任何你可以在fabfile里面写python脚本来实现你想要实现的东西，任何python脚本能做到的东西)
     The fab tool simply imports your fabfile and executes the function or functions you instruct it to.
     There’s nothing magic about it – anything you can do in a normal Python script can be done in a fabfile!
 
@@ -169,8 +169,6 @@ fab -f  fab_salt_minion_install.py -H 192.168.0.108 host_type
     接下来用文本处理fab_output.txt ，机器少的时候可以用grep，机器多的时候用下面这个命令【感谢神一样的大叔】
     awk -F'[][@]' '!/^$/{a[$3]=a[$3]$0"\n"}END{for(i in a)print a[i]}' fab_output.txt
 
-Note:
-    发现并行执行脚本的时候，不能出现交互式的，否则会识别不出，卡住，估计是个bug
 
 ##  最后实例：贴一下我给公司几台内网服务器部署salt minion的fab脚本，其实跟上面大同小异,其实学fabric也是为了部署salt-minion
 #
@@ -189,3 +187,6 @@ Note:
         run('echo $?')
         run('service salt-minion restart')
         run('echo $?')
+Note:
+    发现并行执行脚本的时候，不能出现交互式的，否则会识别不出，卡住，估计是个bug
+    比如上面的，一开始add-apt-repository ppa:saltstack/salt这句后面没有-y ，到了输入回车的时候就失灵了

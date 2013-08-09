@@ -1,0 +1,150 @@
+###### salt命令
+
+### salt -G
+#-G   这个参数很强大 会根据默认的grain的结果来 指定最新
+
+#列出minion的grains:
+    salt 'centos*' grains.ls
+
+#列出minion带数据的grains:
+    salt 'centos*' grains.items
+
+可以看到os: CentOS这一项
+
+#查看所有minion中grain为os: CentOS的ipv4地址:
+    salt -G 'os:Centos' grains.item ipv4
+
+
+### salt -N
+#-N   这个参数是基于组来弄的  前提是你得先分好组
+
+#先在/etc/salt/master里面设置好分组,下面是我设置的分组：
+    #   group1: 'L@foo.domain.com,bar.domain.com,baz.domain.com and bl*.domain.com'
+    #   group2: 'G@os:Debian and foo.domain.com'
+    nodegroups:
+    push: 'L@pushserver1,pushserver2'
+    ubuntu: 'G@os:Ubuntu'
+    direct: 'directorserver[12]'
+
+Note：注意L@,G@的作用，G@的作用就是-G，里面还可以用正则匹配,
+salt的配置文件是立刻生效的，不需要重启服务
+
+### salt命令的查看
+#看了几个例子，了解了一些命令，如果要知道更多的命令如何查阅呢？
+
+# salt 的全部命令查阅
+    salt 'centos*' sys.doc|less
+
+# salt 特定模块命令的查阅，比如查阅service模块：
+    salt 'centos*' sys.doc service|less
+
+##### master端写sls模块
+
+### 先在/etc/salt/master配置文件里面打开模板路径：
+    #file_roots:
+    #  base:
+    #    - /srv/salt
+    file_roots:
+      base:
+        - /srv/salt
+
+如果系统没有/srv/salt，就自己新建一个
+
+### 新建top.sls 入口文件
+
+
+
+
+
+##### 自定义grains
+
+### 最简单的，自己定义key-value。
+#minion端：
+    [root@121 ~]# cat /etc/salt/minion.d/xuejian.conf
+    grains:
+    DF: 2
+    xuejian: 5
+    cpis:
+    - a
+    - b
+    xuejian.net:
+ 
+    ++++++++
+
+    -------
+
+    *******
+ 然后重启salt-minion服务，在服务端查看grains.items即可
+
+Note:
+    OK 没问题都汇报上来了 ##其他可以用这个做数据收集系统 客户端搞个脚本去定期改某个文件 服务器就能收集信息了
+
+    好 grains 这块就先讲到这里  这里先不讲这么调用这些采集上来的数据 
+    等讲完pillar 之后 然后统一讲下 在sls模板或者jinja模板中调用这些值
+
+##### 自定义pillar
+#master端：
+    mkdir /srv/pillar/ && touch  /srv/pillar/top.sls
+
+#配置pillar的入口文件：top.sls
+    vim /srv/pillar/top.sls
+    base:
+      'centos*':
+        - sc
+
+#配置sc.sls文件
+    vim sc.sls
+    xueyousheng: 1
+    share.xuejian.net: 2
+    DF: 1111
+    12_1T: cache+dir coss /data/cache1/coss 600000 max-size=100000
+
+配置完后,查看是否生效
+master端运行：
+    salt 'centos*' pillar.data
+
+
+##### jinja模板
+
+### jinja模板调用grains和pillar的数据
+#master端的入口文件
+    cat /srv/salt/top.sls
+    base:
+      'centos*':
+        - test.test              （表示/srv/salt/test/test.sls文件）
+
+#master端入口文件引用的test.sls文件
+    cat /srv/salt/test/test.sls
+    /tmp/squid.conf:
+      file.managed:
+        - source: salt://test/squid.conf.jinja
+        - template: jinja
+
+#master端test.sls文件引用的jinja文件
+    cat /srv/salt/test/squid.conf.jinja
+    #################Test##################
+    visible hostname:  {{ grains['fqdn'] }}
+    ipv4:{{ grains['ipv4'] }}
+    get selfdef_pillar: {{ pillar['12_1T'] }}
+    get selfdef_grains:  {{ grains['xuejian'] }}
+
+#配置完后，master端推到minion
+    salt 'centos*' state.highstate
+
+#在minion查看结果：
+    cat /tmp/squid.conf
+    #################Test##################
+    visible hostname:  121.centostest.com
+    ipv4:['127.0.0.1', '192.168.0.121']
+    get selfdef_pillar: cache+dir coss /data/cache1/coss 600000 max-size=100000
+    get selfdef_grains:  5
+
+
+#关于grains和pillar的调用       官网有很多文档 建议没事的去看看把 
+#jinja模板还支持 简单的判断 我贴下官网的例子吧
+
+    {% if grains['os'] == 'Ubuntu' %}
+    host: {{ grains['host'] }}
+    {% elif grains['os'] == 'CentOS' %}
+    host: {{ grains['fqdn'] }}
+    {% endif %}
